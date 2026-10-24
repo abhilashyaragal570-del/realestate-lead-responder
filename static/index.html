@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lead responder demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0e2433; --ink-2:#4a6070; --sea:#0b7a75; --sea-dark:#075a56; --sea-soft:#dcefec;
+  --sky:#e8eff3; --paper:#ffffff; --line:#d2dde4; --chat:#dde8ee;
+  --hot-bg:#fbe3de; --hot:#8f2411; --warm-bg:#fcebcb; --warm:#7a4b00; --cold-bg:#e3eaf0; --cold:#3f566a;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--sky);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+:focus-visible{outline:2px solid var(--sea);outline-offset:2px}
+button{font-family:inherit;font-size:inherit;cursor:pointer}
+.page{max-width:1120px;margin:0 auto;padding:28px 20px 48px}
+.top{margin-bottom:24px}
+.top h1{font-family:var(--display);font-weight:700;font-size:clamp(26px,4vw,38px);line-height:1.1;margin:0 0 6px;letter-spacing:-.01em}
+.top p{margin:0;color:var(--ink-2);font-size:16px}
+.grid{display:grid;grid-template-columns:minmax(320px,400px) 1fr;gap:28px;align-items:start}
+
+/* phone */
+.phone{background:var(--chat);border:1px solid var(--line);border-radius:30px;overflow:hidden;display:flex;flex-direction:column;height:min(78vh,680px);min-height:520px;box-shadow:0 18px 40px -22px rgba(14,36,51,.45)}
+.ph-head{background:var(--ink);color:#fff;display:flex;align-items:center;gap:12px;padding:14px 16px}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--sea);display:grid;place-items:center;font-family:var(--display);font-weight:700;flex:none}
+.ph-title{display:flex;flex-direction:column;min-width:0;flex:1}
+.ph-title strong{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-title span{font-size:13px;color:#a9c3d1}
+.ghost{background:transparent;border:1px solid #3d596b;color:#fff;border-radius:999px;padding:6px 12px;font-size:13px}
+.ghost:hover{background:#18364a}
+.chat{flex:1;overflow-y:auto;padding:14px 14px 6px}
+.empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 28px;color:var(--ink-2)}
+.empty .e-title{font-family:var(--display);font-weight:600;font-size:20px;color:var(--ink);margin:0 0 6px}
+.empty p{margin:0}
+.row{display:flex;margin:6px 0}
+.row.user{justify-content:flex-end}
+.bubble{max-width:84%;padding:9px 13px;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere}
+.assistant .bubble{background:var(--paper);border:1px solid var(--line);border-top-left-radius:5px}
+.user .bubble{background:var(--ink);color:#fff;border-top-right-radius:5px}
+.slots{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.slots button{background:var(--paper);border:1px solid var(--sea);color:var(--sea-dark);border-radius:10px;padding:8px 12px;text-align:left;font-weight:600}
+.slots button:hover{background:var(--sea-soft)}
+.typing .bubble{display:flex;gap:4px;padding:13px 14px}
+.typing i{width:7px;height:7px;border-radius:50%;background:#8aa0ae;animation:blink 1.1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes blink{0%,60%,100%{opacity:.3}30%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.typing i{animation:none;opacity:.7}}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:8px 14px;scrollbar-width:thin}
+.chips button{flex:none;max-width:230px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:rgba(255,255,255,.7);border:1px solid #b9cad5;color:var(--ink);border-radius:999px;padding:6px 12px;font-size:13px}
+.chips button:hover{background:#fff;border-color:var(--sea)}
+.composer{display:flex;gap:8px;padding:10px 14px 14px}
+.composer input{flex:1;min-width:0;border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 16px;font:inherit;color:var(--ink)}
+.send{background:var(--sea);color:#fff;border:0;border-radius:999px;padding:0 20px;font-weight:600}
+.send:hover{background:var(--sea-dark)}
+.send:disabled,.composer input:disabled{opacity:.6;cursor:wait}
+
+/* agent */
+.agent{min-width:0}
+.a-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.a-head h2{font-family:var(--display);font-size:24px;margin:0}
+.outline{background:#fff;border:1px solid var(--sea);color:var(--sea-dark);border-radius:999px;padding:7px 14px;font-weight:600}
+.outline:hover{background:var(--sea-soft)}
+.strip{display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:14px}
+.strip>div{padding:14px 16px}
+.strip>div+div{border-left:1px solid var(--line)}
+.strip b{display:block;font-family:var(--display);font-size:28px;line-height:1.1}
+.strip span{color:var(--ink-2);font-size:13px}
+.alert{background:#fff;border:1px solid var(--line);border-left:4px solid var(--sea);border-radius:10px;padding:12px 16px;margin-bottom:22px}
+.alert strong{display:block;margin-bottom:2px}
+.alert p{margin:0;color:var(--ink-2)}
+.alert.empty{border-left-color:var(--line);border-style:dashed;color:var(--ink-2);background:transparent}
+.agent h3{font-family:var(--display);font-size:18px;margin:0 0 10px}
+.leads{display:flex;flex-direction:column;gap:10px}
+.none-leads{border:1px dashed var(--line);border-radius:12px;padding:22px;text-align:center;color:var(--ink-2)}
+.lead{all:unset;box-sizing:border-box;display:block;width:100%;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer}
+.lead:hover{border-color:#9db4c2}
+.lead:focus-visible{outline:2px solid var(--sea);outline-offset:2px}
+.lead.on{border-color:var(--sea);box-shadow:0 0 0 1px var(--sea)}
+.l-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.pill{border-radius:999px;padding:2px 11px;font-size:13px;font-weight:600;text-transform:capitalize}
+.pill.hot{background:var(--hot-bg);color:var(--hot)}
+.pill.warm{background:var(--warm-bg);color:var(--warm)}
+.pill.cold{background:var(--cold-bg);color:var(--cold)}
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:0 0 12px}
+.facts div{min-width:0}
+.facts dt{font-size:12px;color:var(--ink-2)}
+.facts dd{margin:0;font-weight:500;overflow-wrap:anywhere}
+.cap{text-transform:capitalize}
+.none{color:#8aa0ae;font-weight:400}
+.slot{margin:0 0 12px;font-weight:600;color:var(--sea-dark)}
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:12px;color:#7d93a1}
+.steps li::before{content:"";display:block;height:4px;border-radius:2px;background:var(--line);margin-bottom:5px}
+.steps li.done,.steps li.cur{color:var(--ink)}
+.steps li.done::before{background:var(--sea)}
+.steps li.cur::before{background:#7fc4bd}
+.human{margin:0;color:var(--hot);font-weight:600}
+
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:10px;max-width:90vw;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.show{opacity:1}
+
+@media (max-width:860px){
+  .grid{grid-template-columns:1fr}
+  .phone{height:600px}
+  .facts{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <h1>Every enquiry answered in seconds</h1>
+    <p>Play the customer on the left. Watch what your agent receives on the right.</p>
+  </header>
+
+  <main class="grid">
+    <section class="phone" aria-label="Customer chat">
+      <div class="ph-head">
+        <div class="avatar" id="avatar">SP</div>
+        <div class="ph-title"><strong id="agency">Skyline Properties</strong><span id="status">Replies in seconds, any hour</span></div>
+        <button class="ghost" id="newBtn" type="button">New customer</button>
+      </div>
+      <div class="chat" id="chat" aria-live="polite"></div>
+      <div class="chips" id="chips"></div>
+      <form class="composer" id="form">
+        <input id="box" autocomplete="off" placeholder="Type a message" aria-label="Message">
+        <button class="send" id="sendBtn" type="submit">Send</button>
+      </form>
+    </section>
+
+    <section class="agent" aria-label="Agent view">
+      <div class="a-head">
+        <h2>Agent view</h2>
+        <button class="outline" id="fuBtn" type="button">Send follow-ups to quiet leads</button>
+      </div>
+      <div class="strip">
+        <div><b id="sReply">-</b><span>Average first reply</span></div>
+        <div><b id="sHot">0</b><span>Hot leads</span></div>
+        <div><b id="sBooked">0</b><span>Viewings booked</span></div>
+      </div>
+      <div class="alert empty" id="alert"></div>
+      <h3>Leads</h3>
+      <div class="leads" id="leads"></div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+const AGENCY = new URLSearchParams(location.search).get("agency") || "Skyline Properties";
+const SAMPLES = [
+  "Hi, interested in a 2-bedroom in Dubai Marina",
+  "hey, looking for something near the marina, around 1.5 million, want to buy soon",
+  "مرحبا، أبحث عن شقة في داون تاون",
+  "Can you help me with a mortgage?"
+];
+const STAGES = ["Qualifying", "Viewing offered", "Booked"];
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const cap = s => s ? s[0].toUpperCase() + s.slice(1) : "";
+const fmtMs = ms => ms < 1000 ? Math.round(ms) + " ms" : (ms / 1000).toFixed(1) + " s";
+const newId = () => "lead-" + Math.random().toString(36).slice(2, 6);
+
+let LEAD = newId();
+let busy = false;
+const chat = $("chat");
+
+document.title = AGENCY + " lead responder demo";
+$("agency").textContent = AGENCY;
+$("avatar").textContent = AGENCY.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => t.classList.remove("show"), 3500);
+}
+function setStatus(t) { $("status").textContent = t; }
+
+function renderEmpty() {
+  chat.innerHTML = '<div class="empty" id="empty"><p class="e-title">No messages yet</p><p>A customer is about to write to ' +
+    esc(AGENCY) + '. Tap a sample message below or type your own.</p></div>';
+}
+
+function bubble(role, text, shown) {
+  const e = $("empty"); if (e) e.remove();
+  const row = document.createElement("div");
+  row.className = "row " + role;
+  const b = document.createElement("div");
+  b.className = "bubble";
+  b.dir = "auto";
+  const slots = [];
+  let lines = String(shown || text).split("\n");
+  if (role === "assistant") {
+    lines.forEach(l => { const m = l.match(/^(\d)\) (.+)$/); if (m) slots.push([m[1], m[2]]); });
+    if (slots.length) lines = lines.filter(l => !/^(\d)\) /.test(l) && !/^Reply 1, 2 or 3/.test(l));
+  }
+  b.appendChild(document.createTextNode(lines.join("\n").trim()));
+  if (slots.length) {
+    const box = document.createElement("div");
+    box.className = "slots";
+    slots.forEach(([n, label]) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = label;
+      btn.onclick = () => send(n, label);
+      box.appendChild(btn);
+    });
+    b.appendChild(box);
+  }
+  row.appendChild(b);
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function setTyping(on) {
+  const old = $("typing"); if (old) old.remove();
+  if (!on) return;
+  const row = document.createElement("div");
+  row.className = "row assistant typing";
+  row.id = "typing";
+  row.innerHTML = '<div class="bubble"><i></i><i></i><i></i></div>';
+  chat.appendChild(row);
+  chat.scrollTop = chat.scrollHeight;
+  setStatus("typing...");
+}
+
+function setBusy(v) {
+  busy = v;
+  $("box").disabled = v;
+  $("sendBtn").disabled = v;
+}
+
+async function send(text, shown) {
+  text = (text || "").trim();
+  if (!text || busy) return;
+  setBusy(true);
+  bubble("user", text, shown);
+  setTyping(true);
+  try {
+    const r = await fetch("/chat", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({lead_id: LEAD, message: text})
+    });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const d = await r.json();
+    setTyping(false);
+    bubble("assistant", d.reply);
+    setStatus("Replied in " + fmtMs(d.reply_ms));
+  } catch (err) {
+    setTyping(false);
+    setStatus("Replies in seconds, any hour");
+    toast("Could not reach the server. Check that uvicorn is still running in the terminal.");
+  }
+  setBusy(false);
+  $("box").focus();
+  refresh();
+}
+
+async function loadChat() {
+  try {
+    const msgs = await (await fetch("/leads/" + encodeURIComponent(LEAD) + "/messages")).json();
+    if (!msgs.length) { renderEmpty(); return; }
+    chat.innerHTML = "";
+    msgs.forEach(m => bubble(m.role, m.text));
+  } catch (e) { renderEmpty(); }
+}
+
+const f = v => v ? esc(v) : '<span class="none">Not shared yet</span>';
+
+function leadRow(l) {
+  const hand = l.status === "handoff";
+  const si = l.status === "booked" ? 2 : l.status === "offered" ? 1 : 0;
+  const steps = hand
+    ? '<p class="human">Needs a person to take over</p>'
+    : '<ol class="steps">' + STAGES.map((n, i) => '<li class="' + (i < si ? "done" : i === si ? "cur" : "") + '">' + n + '</li>').join("") + '</ol>';
+  return '<button type="button" class="lead' + (l.id === LEAD ? " on" : "") + '" data-id="' + esc(l.id) + '">' +
+    '<div class="l-top"><strong>' + esc(l.id) + '</strong><span class="pill ' + esc(l.score) + '">' + esc(l.score) + '</span></div>' +
+    '<dl class="facts"><div><dt>Budget</dt><dd>' + f(l.budget) + '</dd></div>' +
+    '<div><dt>Area</dt><dd class="cap">' + f(l.area) + '</dd></div>' +
+    '<div><dt>Timeline</dt><dd>' + f(l.timeline) + '</dd></div></dl>' +
+    (l.booked_slot ? '<p class="slot">Viewing on ' + esc(l.booked_slot) + '</p>' : '') +
+    steps + '</button>';
+}
+
+function renderAlert(ls) {
+  const el = $("alert");
+  const c = ls.filter(l => ["offered", "booked", "handoff"].includes(l.status));
+  const l = c.find(x => x.id === LEAD) || c[0];
+  if (!l) {
+    el.className = "alert empty";
+    el.textContent = "Alerts show up here when a lead is qualified, books a viewing or asks for a person.";
+    return;
+  }
+  const v = x => x || "not shared";
+  const detail = cap(l.score) + " lead for " + v(l.area) + ". Budget " + v(l.budget) + ", timeline " + v(l.timeline) + ".";
+  let head, body;
+  if (l.status === "booked") { head = "Viewing booked for " + l.booked_slot; body = detail; }
+  else if (l.status === "offered") { head = "New " + l.score + " lead qualified"; body = detail + " Waiting for them to pick a viewing time."; }
+  else { head = "Customer asked for a person"; body = l.id + " needs a call as soon as possible."; }
+  el.className = "alert";
+  el.innerHTML = "<strong>" + esc(head) + "</strong><p>" + esc(body) + "</p>";
+}
+
+async function refresh() {
+  let ls = [];
+  try { ls = await (await fetch("/leads")).json(); } catch (e) { return; }
+  const times = ls.map(l => l.first_reply_ms).filter(x => x != null);
+  $("sReply").textContent = times.length ? fmtMs(times.reduce((a, b) => a + b, 0) / times.length) : "-";
+  $("sHot").textContent = ls.filter(l => l.score === "hot").length;
+  $("sBooked").textContent = ls.filter(l => l.status === "booked").length;
+  renderAlert(ls);
+  $("leads").innerHTML = ls.length ? ls.map(leadRow).join("") :
+    '<div class="none-leads">No leads yet. Send a message on the left and it will appear here.</div>';
+}
+
+$("form").addEventListener("submit", e => { e.preventDefault(); const t = $("box").value; $("box").value = ""; send(t); });
+$("newBtn").addEventListener("click", () => { LEAD = newId(); renderEmpty(); setStatus("Replies in seconds, any hour"); refresh(); });
+$("leads").addEventListener("click", e => {
+  const b = e.target.closest(".lead"); if (!b) return;
+  LEAD = b.dataset.id; setStatus("Replies in seconds, any hour"); loadChat(); refresh();
+});
+$("fuBtn").addEventListener("click", async () => {
+  try {
+    const r = await (await fetch("/followups/run?hours=0", {method: "POST"})).json();
+    const n = r.followed_up.length;
+    toast(n ? "Follow-up sent to " + n + " quiet lead" + (n > 1 ? "s" : "") + "." : "No quiet leads to follow up right now.");
+    if (r.followed_up.includes(LEAD)) loadChat();
+    refresh();
+  } catch (e) { toast("Could not reach the server."); }
+});
+
+SAMPLES.forEach(s => {
+  const b = document.createElement("button");
+  b.type = "button"; b.textContent = s; b.dir = "auto"; b.title = s;
+  b.onclick = () => send(s);
+  $("chips").appendChild(b);
+});
+
+renderEmpty();
+refresh();
+</script>
+</body>
+</html>
