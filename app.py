@@ -227,6 +227,11 @@ def chat(m: Msg):
         reply = data.get("reply") or "Thanks! An agent will be in touch shortly."
         offered, status = json.loads(lead["offered"]), lead["status"]
 
+        pick = m.message.strip()
+        if status == "offered" and pick.isdigit() and 1 <= int(pick) <= len(offered):
+            pick = offered[int(pick) - 1]
+        if status == "offered" and pick in offered:
+            data["chosen_slot"], data["handoff"] = pick, False
         if data.get("handoff"):
             status = "handoff"
             notify_agent(f"HANDOFF: {m.lead_id} said: {m.message}")
