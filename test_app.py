@@ -1,6 +1,7 @@
-import os
+﻿import os
 os.environ["LEAD_DB"] = "test_leads.db"
 os.environ.pop("ANTHROPIC_API_KEY", None)
+os.environ.pop("GEMINI_API_KEY", None)
 import pytest
 from fastapi.testclient import TestClient
 import app as appmod

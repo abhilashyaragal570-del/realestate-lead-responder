@@ -5,6 +5,7 @@ so you can test and demo the whole flow without any API key.
 """
 import datetime as dt
 import json
+from tagged import parse_tagged
 import os
 import re
 import sqlite3
@@ -78,20 +79,26 @@ SYSTEM = """You are the first-response assistant for {agency}, a real estate age
 Goal: reply warmly and briefly, and find out three things: budget, preferred area, timeline to buy or rent.
 Rules:
 - Ask for ONE missing detail at a time. Keep replies under 50 words. Reply in the customer's language (English or Arabic).
-- Never invent listings, prices, availability, legal or mortgage advice. If asked about those, or the customer wants a human, set handoff true and say an agent will contact them shortly.
-- Write Arabic and any non-English text as normal characters, never as \\u escape sequences.
+- Never invent listings, prices, availability, legal or mortgage advice.
+- HANDOFF is yes ONLY if the customer asks about listings, prices, availability, legal or mortgage matters, or asks for a human. A number, a date or a short answer such as "2" or "2 months" is a normal answer to your question and is NEVER a handoff. When HANDOFF is yes, the reply says an agent will contact them shortly.
 - Greet the customer only in your very first reply. After that, continue naturally without repeating the greeting.
 - Do not offer viewing times yourself; the system adds them once all three details are known.
-- If the customer is choosing a viewing slot, set chosen_slot to the exact slot text from OFFERED_SLOTS, otherwise null.
+- If the customer is choosing a viewing slot, SLOT is the exact slot text from OFFERED_SLOTS, otherwise none.
 Already known: {known}
 OFFERED_SLOTS: {offered}
-Reply with ONLY JSON: {{"reply": str, "budget": str|null, "area": str|null, "timeline": str|null, "handoff": bool, "chosen_slot": str|null}}"""
+Reply in exactly this plain-text format, one tag per line, no JSON, no extra text:
+REPLY: <your message to the customer>
+BUDGET: <budget or none>
+AREA: <area or none>
+TIMELINE: <timeline or none>
+HANDOFF: <yes or no>
+SLOT: <slot or none>"""
 
 
 def build_system(lead):
     return SYSTEM.format(
         agency=AGENCY,
-        known=json.dumps({k: lead[k] for k in FIELDS}),
+        known=json.dumps({k: lead[k] for k in FIELDS}, ensure_ascii=False),
         offered=lead["offered"],
     )
 
@@ -114,7 +121,7 @@ def anthropic_turn(history, lead):
         model=MODEL, max_tokens=400, system=build_system(lead),
         messages=[{"role": m["role"], "content": m["text"]} for m in history],
     )
-    return parse_json(r.content[0].text)
+    return parse_tagged(r.content[0].text)
 
 
 def gemini_once(history, lead):
@@ -134,7 +141,6 @@ def gemini_once(history, lead):
             "system_instruction": {"parts": [{"text": build_system(lead)}]},
             "contents": contents,
             "generationConfig": {
-                "responseMimeType": "application/json",
                 "maxOutputTokens": 1024,
                 "temperature": 0.3,
             },
@@ -143,7 +149,7 @@ def gemini_once(history, lead):
     )
     if r.status_code >= 400:
         raise RuntimeError(f"Gemini {r.status_code}: {r.text[:300]}")
-    return parse_json(r.json()["candidates"][0]["content"]["parts"][0]["text"])
+    return parse_tagged(r.json()["candidates"][0]["content"]["parts"][0]["text"])
 
 
 def gemini_turn(history, lead):
@@ -151,7 +157,7 @@ def gemini_turn(history, lead):
     for _ in range(2):  # retry once if the model returns unusable JSON
         try:
             return gemini_once(history, lead)
-        except (json.JSONDecodeError, KeyError, IndexError, AttributeError) as e:
+        except (ValueError, KeyError, IndexError, AttributeError) as e:
             last = e
     raise last
 
